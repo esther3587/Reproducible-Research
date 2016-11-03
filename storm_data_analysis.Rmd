@@ -1,0 +1,65 @@
+---
+title: "Storm data analysis in U.S."
+author: "Shun-Wen Chang"
+date: "September 27, 2015"
+output: html_document
+
+##Data Processing
+
+Load data from online source:
+
+```{r, echo=TRUE, cache=TRUE}
+download.file("https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2",destfile = "storm.csv",method="curl")
+storm<-read.csv("storm.csv",header = TRUE)
+```
+
+Create column related to population health named "health" from the combination of FATALITIES and INJURIES:
+
+```{r, echo=TRUE}
+storm$health <- storm$FATALITIES+storm$INJURIES
+```
+
+Calculate the number of harmed population by each event type:
+
+```{r, echo=TRUE}
+health<-aggregate(storm$health, by=list(Category=storm$EVTYPE), FUN=sum,na.rm=TRUE)
+```
+
+Calculate crop damage and property damage, and add them together to create new column named "economy":
+
+```{r, echo=TRUE}
+ltr  <- c("B" , "M" , "K", "","m","0","1","2","3","4","5","6","7","8","+","-","H","h","?")
+mult <- c(10^9, 10^6, 10^3, 0,10^6,10,10,10,10,10,10,10,10,10,1,0,100,100,0)
+storm$PROPDMG2 <- storm$PROPDMG * mult[match(storm$PROPDMGEXP, ltr)]
+storm$CROPDMG2 <- storm$CROPDMG * mult[match(storm$CROPDMGEXP, ltr)]
+storm$economy <- storm$PROPDMG2+storm$CROPDMG2
+```
+
+Calculate the number of harmed economy by each event type:
+
+```{r, echo=TRUE}
+economy<-aggregate(storm$economy, by=list(Category=storm$EVTYPE), FUN=sum,na.rm=TRUE)
+```
+##Results
+
+Find the event name which caused the maximum number of harmed population:
+
+```{r, echo=TRUE}
+health$Category[which.max(health$x)]
+barplot(health$x,ylab = "Fatalities+Injuries",xlab = "Event")
+```
+
+**Across the United States, Tornado is the most harmful with respect to population health.**
+
+Find the event name which caused the maximum number of crop and property damage:
+
+```{r, echo=TRUE}
+economy$Category[which.max(economy$x)]
+barplot(economy$x,ylab = "Crop damage + Property damage",xlab = "Event")
+```
+
+**Across the United States, Flood has the greatest economic consequences**
+
+
+
+
